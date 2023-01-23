@@ -1,6 +1,3 @@
-install.packages("readr")
-
-
 library(readr)
 library(dplyr)
 library(highfrequency)
@@ -25,3 +22,14 @@ plot(kernel_cov, col = 'green')
 lines(cov, col = 'red')
 
 plot(kernel_cov-cov)
+
+
+## 
+data_open <- data %>%
+  group_by(DATE) %>%
+  slice_head(n = 1)
+
+data_close <- data %>%
+  group_by(DATE) %>%
+  slice_tail(n = 1)
+
