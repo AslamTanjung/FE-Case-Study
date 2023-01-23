@@ -1,3 +1,6 @@
+install.packages("readr")
+
+
 library(readr)
 library(dplyr)
 library(highfrequency)
