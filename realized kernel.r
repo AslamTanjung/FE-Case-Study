@@ -8,7 +8,7 @@ data <- read.csv(unz("Data/Disney.zip", "Disney.csv"), header=T)
 data <- data[2:nrow(data),]
 data <- data %>%
     mutate(DATE_TIME = paste(DATE, TIME)) %>%
-    mutate(DATE_TIME = as.POSIXct(DATE_TIME, tryFormats = c("%Y/%m/%d %H:%M:%S")))
+    mutate(DATE_TIME = as.POSIXct(DATE_TIME, format = c("%Y/%m/%d %H:%M:%S")))
 
 ts <- xts(data$PRICE, data$DATE_TIME)
 ## Realized kernel estimator
