@@ -79,39 +79,48 @@ fit_roc <- ugarchfit(spec_roc, ret_oc[2:length(ret_oc)], solver = 'hybrid', real
 
 ## Rolling window forecast with re-estimation
 n_test <- 252
-modelroll_close <- ugarchroll (
-  spec=spec_close, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
-  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
-)
-modelroll_rclose <- ugarchroll (
-  spec=spec_rclose, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
-  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
-  realizedVol = kernel_cov[2:length(kernel_cov)]
-)
-modelroll_oc <- ugarchroll (
-  spec=spec_oc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
-  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
-)
-modelroll_roc <- ugarchroll (
-  spec=spec_roc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
-  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
-  realizedVol = kernel_cov[2:length(kernel_cov)]
-)
+# modelroll_close <- ugarchroll (
+#   spec=spec_close, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("recursive"),
+#   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
+# )
+# modelroll_rclose <- ugarchroll (
+#   spec=spec_rclose, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("recursive"),
+#   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
+#   realizedVol = kernel_cov[2:length(kernel_cov)]
+# )
+# modelroll_oc <- ugarchroll (
+#   spec=spec_oc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("recursive"),
+#   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
+# )
+# modelroll_roc <- ugarchroll (
+#   spec=spec_roc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("recursive"),
+#   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
+#   realizedVol = kernel_cov[2:length(kernel_cov)]
+# )
 
+true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
+
+# forc_roc = sigma(ugarchforecast(fit_roc, n.ahead = n_test, n.roll = 0))
+# write.csv(forc_roc, file = "Forecasts/Open_to_close_RealGARCH_Forecast.csv", row.names = FALSE)
+# forc_oc = sigma(ugarchforecast(fit_oc, n.ahead = n_test, n.roll = 0))
+# write.csv(forc_oc, file = "Forecasts/Open_to_close_GARCH_Forecast.csv", row.names = FALSE)
+# forc_close = sigma(ugarchforecast(fit_close, n.ahead = n_test, n.roll = 0))
+# forc_rclose = sigma(ugarchforecast(fit_rclose, n.ahead = n_test, n.roll = 0))
 
 ## Forecasts
 ## Because our goal is to produce models with accurate forecasts, we evaluate
 ## the quality of the models by looking at forecast prediction accuracy instead of
 ## widely used likelihood statistics, such as AIC and BIC.
-true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
+forc_close <- modelroll_close@forecast$density[,"Sigma"]
 forc_rclose <- modelroll_rclose@forecast$density[,"Sigma"]
 forc_roc <- modelroll_roc@forecast$density[,"Sigma"]
-forc_close <- modelroll_close@forecast$density[,"Sigma"]
+write.csv(forc_roc, file = "Forecasts/Open_to_close_RealGARCH_Forecast.csv", row.names = FALSE)
 forc_oc <- modelroll_oc@forecast$density[,"Sigma"]
+write.csv(forc_oc, file = "Forecasts/Open_to_close_GARCH_Forecast.csv", row.names = FALSE)
 
 factor <- var(ret_close[2:(length(ret_close)-n_test)])/mean(kernel_cov[2:(length(kernel_cov)-n_test)])
 ## Mean Absolute Value
@@ -167,16 +176,31 @@ dm.test(MAE_rchoose1, MAE_rchoose2, alternative = "two.sided", h = 1)
 ################################################################################
 ################################################################################
 ## EGARCH model
-spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 2)), distribution.model = "sstd")
+spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
+# fit_e <- ugarchfit(spec_e, ret_close[2:length(ret_close)], solver = 'hybrid')
 modelroll_e <- ugarchroll (
   spec=spec_e, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
   refit.every = 1, refit.window = c("recursive"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
   realizedVol = kernel_cov[2:length(kernel_cov)]
 )
-
 forc_e <- modelroll_e@forecast$density[,"Sigma"]
+
+# forc_e <- sigma(ugarchforecast(fit_e, n.ahead = n_test, n.roll = 0))
+write.csv(forc_e, file = "Forecasts/Open_to_close_EGARCH_Forecast.csv", row.names = FALSE)
 MAE_e <- as.double(abs(forc_e - true_value))
+write.csv(MAE_e, file = "MAE/Open_to_close_EGARCH_MAE.csv", row.names = FALSE)
 
 dm.test(MAE_roc, MAE_e, alternative = "two.sided", h = 1)
 dm.test(MAE_oc, MAE_e, alternative = "two.sided", h = 1)
+
+################################################################################
+################################################################################
+
+
+plot(as.numeric(true_value), type = 'l', col = 'blue')
+lines(forc_e, col = 'red')
+lines(forc_oc, col = 'green')
+lines(forc_roc, col = 'purple')
+legend("topleft", legend = c("EGARCH", "TRUE", "GARCH", 'realGARCH'), col = c('red', 'blue', 'green', 'purple'), lty=1)
+S
