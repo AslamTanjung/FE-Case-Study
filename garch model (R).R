@@ -163,3 +163,20 @@ dm.test(MAE_rchoose1, MAE_rchoose2, alternative = "two.sided", h = 1)
 ## The p-value is 0.4053 and the test statistic is -0.83353. There is not enough evidence
 ## to reject the null hypothesis that the models perform equally well. Thus we choose
 ## to continue with GARCH(1,1) for parsimionity.
+
+################################################################################
+################################################################################
+## EGARCH model
+spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 2)), distribution.model = "sstd")
+modelroll_e <- ugarchroll (
+  spec=spec_e, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
+  refit.every = 1, refit.window = c("recursive"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
+  realizedVol = kernel_cov[2:length(kernel_cov)]
+)
+
+forc_e <- modelroll_e@forecast$density[,"Sigma"]
+MAE_e <- as.double(abs(forc_e - true_value))
+
+dm.test(MAE_roc, MAE_e, alternative = "two.sided", h = 1)
+dm.test(MAE_oc, MAE_e, alternative = "two.sided", h = 1)
