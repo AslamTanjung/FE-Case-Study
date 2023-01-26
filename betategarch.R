@@ -28,13 +28,13 @@ lines(exp(fitted(est)/2), col = 'red')
 legend(1500, 13, legend=c("Kernel", "Beta-t-EGARCH"),
        col=c("black", "red"), lty =1:2, cex=0.8)
 
-# Out of sample forecast
-predicts <- predict(est, n.ahead = 500)
+# Static window forecast h=252
+predicts <- predict(est, n.ahead = 252)
 plot(predicts, type = 'p')
 lines(var(cc_data))
 
-# Rolling window forecasts
-rw_preds <- 0
+# Rolling window 1-step ahead forecasts h=252
+rw_preds <- c()
 
 rollapplyr(
   data = cc_data,
@@ -48,3 +48,5 @@ rollapplyr(
 
 plot(tail(kernel_data, 252), type = 'l')
 lines(tail(rw_preds, 252), type = 'l', col='red')
+
+rw_preds <- as.numeric(rw_preds)
