@@ -34,19 +34,41 @@ plot(predicts, type = 'p')
 lines(var(cc_data))
 
 # Rolling window 1-step ahead forecasts h=252
-rw_preds <- c()
+rw_forecast <- function(x, steps){
+  rw_preds <- c()
+  rollapplyr(
+    data = x,
+    width = length(x) - 252,
+    FUN = function(data) {
+      ests <- tegarch(data)
+      rw_preds <<- c(rw_preds, predict(ests, n.ahead = steps))
+      print(length(rw_preds))
+    }
+  )
+  as.numeric(rw_preds)
+}
 
-rollapplyr(
-  data = cc_data,
-  width = length(cc_data) - 252,
-  FUN = function(x) {
-    ests <- tegarch(x)
-    rw_preds <<- c(rw_preds, predict(ests, n.ahead = 1))
-    print(length(rw_preds))
-  }
-)
-
+rw_preds_oc <- rw_forecast(oc_data, 1) # forecasts for open-to-close data
 plot(tail(kernel_data, 252), type = 'l')
-lines(tail(rw_preds, 252), type = 'l', col='red')
+lines(tail(rw_preds_oc, 252), type = 'l', col='red')
 
-rw_preds <- as.numeric(rw_preds)
+rw_preds_cc <- rw_forecast(cc_data, 1) # forecasts for close-to-close data
+plot(tail(kernel_data, 252), type = 'l')
+lines(tail(rw_preds_oc, 252), type = 'l', col='red')
+
+# Save predictions as csv
+write.csv(rw_preds_oc, file = "Forecasts/Open_to_close_TEGARCH_Forecast.csv", row.names = FALSE)
+write.csv(rw_preds_cc, file = "Forecasts/Close_to_close_TEGARCH_Forecast.csv", row.names = FALSE)
+
+
+# Calculate MAE 
+MAE <- function(forc, true_value) {
+  return(as.double(abs(forc-true_value)))
+}
+
+true_vol <- tail(kernel_data, 252)
+MAE_oc <- MAE(tail(rw_preds_oc, 252), true_vol)
+MAE_cc <- MAE(tail(rw_preds_cc, 252), true_vol)
+
+write.csv(MAE_oc, file = "MAE/Open_to_close_RealGARCH_MAE.csv", row.names = FALSE)
+write.csv(MAE_cc, file = "MAE/Close_to_close_RealGARCH_MAE.csv", row.names = FALSE)
