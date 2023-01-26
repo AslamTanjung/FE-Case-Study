@@ -38,9 +38,9 @@ library(forecast)
 ################################################################################
 ################################################################################
 
-ret_close <- read.csv("Close_to_close_log_returns.csv", sep = " ")
-ret_close$Index <- as.POSIXct(ret_close$Index,format="%Y-%m-%d %H:%M:%S")
-ret_close <- xts(ret_close$V1, ret_close$Index)
+# ret_close <- read.csv("Close_to_close_log_returns.csv", sep = " ")
+# ret_close$Index <- as.POSIXct(ret_close$Index,format="%Y-%m-%d %H:%M:%S")
+# ret_close <- xts(ret_close$V1, ret_close$Index)
 
 ret_oc <- read.csv("Open_to_close_log_returns.csv", sep = " ")
 ret_oc$Index <- as.POSIXct(ret_oc$Index,format="%Y-%m-%d %H:%M:%S")
