@@ -172,7 +172,7 @@ MAE <- function(forc, true_value) {
   return(as.double(abs(forc-true_value)))
 }
 
-# MAE <- function(forc, true_value) {
+# MSE <- function(forc, true_value) {
 #   return(as.double((forc-true_value)**2))
 # }
 MAE_roc <- MAE(forc_roc, true_value)
@@ -191,9 +191,11 @@ write.csv(MAE_e, file = "MAE/Open_to_close_EGARCH_MAE.csv", row.names = FALSE)
 MAE_roc <- read.csv("MAE/Open_to_close_RealGARCH_MAE.csv")$x
 MAE_oc <- read.csv("MAE/Open_to_close_GARCH_MAE.csv")$x
 MAE_e <- read.csv("MAE/Open_to_close_EGARCH_MAE.csv")$x
+MAE_gjr <- read.csv("MAE/Open_to_close_GJRGARCH_MAE.csv")$x
 forc_roc <- read.csv("Forecasts/Open_to_close_RealGARCH_Forecast.csv")$x
 forc_oc <- read.csv("Forecasts/Open_to_close_GARCH_Forecast.csv")$x
 forc_e <- read.csv("Forecasts/Open_to_close_EGARCH_Forecast.csv")$x
+forc_gjr <- read.csv("Forecasts/Open_to_close_GJRGARCH_Forecast.csv")$x
 
 ################################################################################
 ################################################################################
@@ -240,9 +242,10 @@ dm.test(MAE_rchoose1, MAE_rchoose2, alternative = "two.sided", h = 1)
 
 
 
-plot(as.numeric(true_value), type = 'l', col = 'blue')
+plot(as.numeric(true_value), type = 'l', col = 'blue', xlim = c(0,100))
 lines(forc_e, col = 'red')
 lines(forc_oc, col = 'green')
 lines(forc_roc, col = 'purple')
 lines(forc_gjr, col = 'black')
-legend("topleft", legend = c("EGARCH", "TRUE", "GARCH", 'realGARCH', 'GJR'), col = c('red', 'blue', 'green', 'purple', 'black'), lty=1)
+lines(forc_gas, col = 'brown')
+legend("topleft", legend = c("E", "TRUE", "GARCH", 'real', 'GJR', 'GAS'), col = c('red', 'blue', 'green', 'purple', 'black', 'brown'), lty=1)
