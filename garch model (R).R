@@ -8,50 +8,55 @@ library(ggplot2)
 library(TSstudio)
 library(forecast)
 
-# data <- read.csv(unz("Data/Disney.zip", "Disney.csv"), header=T)
-# ## Remove first row, because it is empty
-# data <- data[2:nrow(data),]
-# data <- data %>%
-#   mutate(DATE_TIME = paste(DATE, TIME)) %>%
-#   mutate(DATE_TIME = as.POSIXct(DATE_TIME, format = "%Y/%m/%d %H:%M:%S")) %>%
-#   mutate(PRICE = as.numeric(PRICE))
-# ## Make open and close data
-# data_open <- data %>%
-#   group_by(DATE) %>%
-#   slice_head(n = 1)
-# 
-# data_close <- data %>%
-#   group_by(DATE) %>%
-#   slice_tail(n = 1)
-# 
-# ts_open <- xts(data_open$PRICE, data_open$DATE_TIME)
-# ts_close <- xts(data_close$PRICE, data_close$DATE_TIME)
-# 
-# ## Make returns
-# ## LOG return
-# ret_close <- momentum(100 * log(ts_close), n = 1)
-# ret_oc <- xts(100 *(as.numeric(log(ts_open)) - as.numeric(log(ts_close))), index(ts_close))
-# 
-# write.zoo(ret_close, file = "Close_to_close_log_returns.csv", col.names = TRUE)
-# write.zoo(ret_oc, file = "Open_to_close_log_returns.csv", col.names = TRUE)
+data <- read.csv(unz("Data/Disney.zip", "Disney.csv"), header=T)
+## Remove first row, because it is empty
+data <- data[2:nrow(data),]
+data <- data %>%
+  mutate(DATE_TIME = paste(DATE, TIME)) %>%
+  mutate(DATE_TIME = as.POSIXct(DATE_TIME, format = "%Y/%m/%d %H:%M:%S")) %>%
+  mutate(PRICE = as.numeric(PRICE))
+## Make open and close data
+data_open <- data %>%
+  group_by(DATE) %>%
+  slice_head(n = 1)
+
+data_close <- data %>%
+  group_by(DATE) %>%
+  slice_tail(n = 1)
+
+ts_open <- xts(data_open$PRICE, data_open$DATE_TIME)
+ts_close <- xts(data_close$PRICE, data_close$DATE_TIME)
+
+## Make returns
+## LOG return
+ret_close <- momentum(100 * log(ts_close), n = 1)
+
+ret_oc <- xts(100 *(as.numeric(log(ts_close)) - as.numeric(log(ts_open))), index(ts_close))
+
+write.zoo(ret_close, file = "Returns & RV/Close_to_close_log_returns.csv", col.names = TRUE)
+write.zoo(ret_oc, file = "Returns & RV/Open_to_close_log_returns.csv", col.names = TRUE)
 
 ################################################################################
 ################################################################################
 
-# ret_close <- read.csv("Close_to_close_log_returns.csv", sep = " ")
+# ret_close <- read.csv("Returns & RV/Close_to_close_log_returns.csv", sep = " ")
 # ret_close$Index <- as.POSIXct(ret_close$Index,format="%Y-%m-%d %H:%M:%S")
 # ret_close <- xts(ret_close$V1, ret_close$Index)
 
-ret_oc <- read.csv("Open_to_close_log_returns.csv", sep = " ")
+ret_oc <- read.csv("Returns & RV/Open_to_close_log_returns.csv", sep = " ")
 ret_oc$Index <- as.POSIXct(ret_oc$Index,format="%Y-%m-%d %H:%M:%S")
 ret_oc <- xts(ret_oc$V1, ret_oc$Index)
 
-kernel_cov <- read.csv("RV_kernel.csv", sep = " ")
+kernel_cov <- read.csv("Returns & RV/RV_kernel.csv", sep = " ")
 kernel_cov$Index <- as.POSIXct(kernel_cov$Index,format="%Y-%m-%d %H:%M:%S")
 kernel_cov <- xts(kernel_cov$V1, kernel_cov$Index)
 
-plot(index(ret_close), ret_close, type = "l", xlab = "Time", ylab = "Open to Close Log Return")
-plot(index(ret_oc), ret_oc, type = "l", xlab = "Time", ylab = "Close to Close Log Return")
+rv <- read.csv("Returns & RV/RV.csv", sep = " ")
+rv$Index <- as.POSIXct(rv$Index,format="%Y-%m-%d %H:%M:%S")
+rv <- xts(rv$V1, rv$Index)
+
+# plot(index(ret_close), ret_close, type = "l", xlab = "Time", ylab = "Close to Close Log Return")
+plot(index(ret_oc), ret_oc, type = "l", xlab = "Time", ylab = "Open to Close Log Return")
 
 ################################################################################
 ################################################################################
@@ -66,18 +71,29 @@ plot(index(ret_oc), ret_oc, type = "l", xlab = "Time", ylab = "Close to Close Lo
 # spec_close <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
 # fit_close <- ugarchfit(spec_close, ret_close[2:length(ret_close)], solver = 'hybrid')
 
-## Open-to-close
-spec_oc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
+## Model specification with Student t distribution (maybe  also with sstd to compare?)
+spec_oc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "std")
+spec_roc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'realGARCH', garchOrder = c(1, 1)), distribution.model = "std")
+spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 1)), distribution.model = "std")
+spec_gjr <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'gjrGARCH', garchOrder = c(1, 1)), distribution.model = "std")
+
+#Open to close fit 
 fit_oc <- ugarchfit(spec_oc, ret_oc[2:length(ret_oc)], solver = 'hybrid')
+fit_roc <- ugarchfit(spec_roc, ret_oc[2:length(ret_oc)], solver = 'hybrid', realizedVol = sqrt(kernel_cov[2:length(kernel_cov)]))
+fit_e <- ugarchfit(spec_e, ret_oc[2:length(ret_oc)], solver = 'hybrid')
+fit_gjr <- ugarchfit(spec_gjr, ret_oc[2:length(ret_oc)], solver = 'hybrid')
 
-spec_roc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'realGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
-fit_roc <- ugarchfit(spec_roc, ret_oc[2:length(ret_oc)], solver = 'hybrid', realizedVol = kernel_cov[2:length(kernel_cov)])
+#output of, parameters estimates and other statistics, open to close Garch models
+fit_oc
+fit_roc
+fit_e
+fit_gjr
 
-spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
-fit_e <- ugarchfit(spec_e, ret_close[2:length(ret_close)], solver = 'hybrid')
-
-spec_gjr <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'gjrGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
-fit_gjr <- ugarchfit(spec_gjr, ret_close[2:length(ret_close)], solver = 'hybrid')
+#useful plots of open to close Garch models
+plot(fit_oc, which= 'all')
+plot(fit_roc, which= 'all')
+plot(fit_e, which= 'all')
+plot(fit_gjr, which= 'all')
 
 # forc_roc = sigma(ugarchforecast(fit_roc, n.ahead = n_test, n.roll = 0))
 # write.csv(forc_roc, file = "Forecasts/Open_to_close_RealGARCH_Forecast.csv", row.names = FALSE)
@@ -109,26 +125,24 @@ true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
 # )
 modelroll_oc <- ugarchroll (
   spec=spec_oc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
+  refit.every = 1, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 modelroll_roc <- ugarchroll (
   spec=spec_roc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
+  refit.every = 1, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
   realizedVol = kernel_cov[2:length(kernel_cov)]
 )
 modelroll_e <- ugarchroll (
   spec=spec_e, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
-  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
-  realizedVol = kernel_cov[2:length(kernel_cov)]
+  refit.every = 1, refit.window = c("moving"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 modelroll_gjr <- ugarchroll (
   spec=spec_gjr, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("recursive"),
-  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
-  realizedVol = kernel_cov[2:length(kernel_cov)]
+  refit.every = 1, refit.window = c("moving"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 
 
@@ -154,14 +168,25 @@ modelroll_gjr <- ugarchroll (
 #   assign(paste0("forc_", suffix), forc)
 # } 
 
+#return forecasts
+forcret_roc <- modelroll_roc@forecast$density[,"Mu"]
+write.csv(forcret_roc, file = "Forecasts/OCret_RealGARCH_Forecast.csv", row.names = FALSE)
+forcret_oc <- modelroll_oc@forecast$density[,"Mu"]
+write.csv(forcret_oc, file = "Forecasts/OCret_GARCH_Forecast.csv", row.names = FALSE)
+forcret_gjr <- modelroll_gjr@forecast$density[,"Mu"]
+write.csv(forcret_gjr, file = "Forecasts/OCret_GJRGARCH_Forecast.csv", row.names = FALSE)
+forcret_e <- modelroll_e@forecast$density[,"Mu"]
+write.csv(forcret_e, file = "Forecasts/OCret_EGARCH_Forecast.csv", row.names = FALSE)
+
+#volatility forecasts
 forc_roc <- modelroll_roc@forecast$density[,"Sigma"]
-write.csv(forc_roc, file = "Forecasts/Open_to_close_RealGARCH_Forecast.csv", row.names = FALSE)
+write.csv(forc_roc, file = "Forecasts/OCvol_RealGARCH_Forecast.csv", row.names = FALSE)
 forc_oc <- modelroll_oc@forecast$density[,"Sigma"]
-write.csv(forc_oc, file = "Forecasts/Open_to_close_GARCH_Forecast.csv", row.names = FALSE)
+write.csv(forc_oc, file = "Forecasts/OCvol_GARCH_Forecast.csv", row.names = FALSE)
 forc_gjr <- modelroll_gjr@forecast$density[,"Sigma"]
-write.csv(forc_gjr, file = "Forecasts/Open_to_close_GJRGARCH_Forecast.csv", row.names = FALSE)
+write.csv(forc_gjr, file = "Forecasts/OCvol_GJRGARCH_Forecast.csv", row.names = FALSE)
 forc_e <- modelroll_e@forecast$density[,"Sigma"]
-write.csv(forc_e, file = "Forecasts/Open_to_close_EGARCH_Forecast.csv", row.names = FALSE)
+write.csv(forc_e, file = "Forecasts/OCvol_EGARCH_Forecast.csv", row.names = FALSE)
 
 # factor <- var(ret_close[2:(length(ret_close)-n_test)])/mean(kernel_cov[2:(length(kernel_cov)-n_test)])
 ## Mean Absolute Value
@@ -176,26 +201,26 @@ MAE <- function(forc, true_value) {
 #   return(as.double((forc-true_value)**2))
 # }
 MAE_roc <- MAE(forc_roc, true_value)
-write.csv(MAE_roc, file = "MAE/Open_to_close_RealGARCH_MAE.csv", row.names = FALSE)
+write.csv(MAE_roc, file = "MAE/OCvol_RealGARCH_MAE.csv", row.names = FALSE)
 MAE_oc <- MAE(forc_oc, true_value)
-write.csv(MAE_oc, file = "MAE/Open_to_close_GARCH_MAE.csv", row.names = FALSE)
+write.csv(MAE_oc, file = "MAE/OCvol_GARCH_MAE.csv", row.names = FALSE)
 MAE_gjr <- MAE(forc_gjr, true_value)
-write.csv(MAE_gjr, file = "MAE/Open_to_close_GJRGARCH_MAE.csv", row.names = FALSE)
+write.csv(MAE_gjr, file = "MAE/OCvol_GJRGARCH_MAE.csv", row.names = FALSE)
 MAE_e <- MAE(forc_e, true_value)
-write.csv(MAE_e, file = "MAE/Open_to_close_EGARCH_MAE.csv", row.names = FALSE)
+write.csv(MAE_e, file = "MAE/OCvol_EGARCH_MAE.csv", row.names = FALSE)
 
 ################################################################################
 ################################################################################
 ## INLEZEN #####################################################################
 
-MAE_roc <- read.csv("MAE/Open_to_close_RealGARCH_MAE.csv")$x
-MAE_oc <- read.csv("MAE/Open_to_close_GARCH_MAE.csv")$x
-MAE_e <- read.csv("MAE/Open_to_close_EGARCH_MAE.csv")$x
-MAE_gjr <- read.csv("MAE/Open_to_close_GJRGARCH_MAE.csv")$x
-forc_roc <- read.csv("Forecasts/Open_to_close_RealGARCH_Forecast.csv")$x
-forc_oc <- read.csv("Forecasts/Open_to_close_GARCH_Forecast.csv")$x
-forc_e <- read.csv("Forecasts/Open_to_close_EGARCH_Forecast.csv")$x
-forc_gjr <- read.csv("Forecasts/Open_to_close_GJRGARCH_Forecast.csv")$x
+MAE_roc <- read.csv("MAE/OCvol_RealGARCH_MAE.csv")$x
+MAE_oc <- read.csv("MAE/OCvol_GARCH_MAE.csv")$x
+MAE_e <- read.csv("MAE/OCvol_EGARCH_MAE.csv")$x
+MAE_gjr <- read.csv("MAE/OCvol_GJRGARCH_MAE.csv")$x
+forc_roc <- read.csv("Forecasts/OCvol_RealGARCH_Forecast.csv")$x
+forc_oc <- read.csv("Forecasts/OCvol_GARCH_Forecast.csv")$x
+forc_e <- read.csv("Forecasts/OCvol_EGARCH_Forecast.csv")$x
+forc_gjr <- read.csv("Forecasts/OCvol_GJRGARCH_Forecast.csv")$x
 
 ################################################################################
 ################################################################################
