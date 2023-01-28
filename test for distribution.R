@@ -1,18 +1,15 @@
-ret_close <- read.csv("Close_to_close_log_returns.csv", sep = " ")
+library(QRM)
+library(fitdistrplus)
+library(fitdistr)
+library(moments)
+
+ret_close <- read.csv("Returns & RV/Close_to_close_log_returns.csv", sep = " ")
 ret_close$Index <- as.POSIXct(ret_close$Index,format="%Y-%m-%d %H:%M:%S")
 ret_close <- xts(ret_close$V1, ret_close$Index)
 
-ret_oc <- read.csv("Open_to_close_log_returns.csv", sep = " ")
+ret_oc <- read.csv("Returns & RV/Open_to_close_log_returns.csv", sep = " ")
 ret_oc$Index <- as.POSIXct(ret_oc$Index,format="%Y-%m-%d %H:%M:%S")
 ret_oc <- xts(ret_oc$V1, ret_oc$Index)
-
-install.packages('QRM')
-library(QRM)
-install.packages("fitdistrplus")
-library(fitdistrplus)
-library(fitdistr)
-install.packages("moments")
-library(moments)
 
 #returns close to close
 returns_close <- data.frame(ret_close[-1])
@@ -36,7 +33,7 @@ shapiro.test(returns_oc$returns) #conclusion: not normal
 
 #skewness test
 skewness(returns_close$returns) #conclusion: positive skewness (close to close)
-skewness(returns_oc$returns) #conclusion: negative skewness (open to close)
+skewness(returns_oc$returns) #conclusion: positive skewness (open to close)
 
 
 descdist(returns_close$returns, discrete = FALSE) #conclusion: high kurtosis
@@ -66,7 +63,7 @@ lines(returns_oc$returns, yvals, col = "red", type= 'p')
 
 
 
-###### fitted student t on open to close returns ######
+###### fitted student t on close to close returns ######
 tfit2 = fit.st(returns_close$returns)
 
 # Define tpars, nu, mu, and sigma
