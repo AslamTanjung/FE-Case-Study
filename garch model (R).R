@@ -78,10 +78,10 @@ spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE
 spec_gjr <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'gjrGARCH', garchOrder = c(1, 1)), distribution.model = "std")
 
 #Open to close fit 
-fit_oc <- ugarchfit(spec_oc, ret_oc[2:length(ret_oc)], solver = 'hybrid')
-fit_roc <- ugarchfit(spec_roc, ret_oc[2:length(ret_oc)], solver = 'hybrid', realizedVol = sqrt(kernel_cov[2:length(kernel_cov)]))
-fit_e <- ugarchfit(spec_e, ret_oc[2:length(ret_oc)], solver = 'hybrid')
-fit_gjr <- ugarchfit(spec_gjr, ret_oc[2:length(ret_oc)], solver = 'hybrid')
+fit_oc <- ugarchfit(spec = spec_oc, data = ret_oc[2:length(ret_oc)], solver = 'hybrid')
+fit_roc <- ugarchfit(spec = spec_roc, data = ret_oc[2:length(ret_oc)], solver = 'hybrid', realizedVol = sqrt(kernel_cov[2:length(kernel_cov)]))
+fit_e <- ugarchfit(spec = spec_e, data = ret_oc[2:length(ret_oc)], solver = 'hybrid')
+fit_gjr <- ugarchfit(spec = spec_gjr, data = ret_oc[2:length(ret_oc)], solver = 'hybrid')
 
 #output of, parameters estimates and other statistics, open to close Garch models
 fit_oc
@@ -95,34 +95,32 @@ plot(fit_roc, which= 'all')
 plot(fit_e, which= 'all')
 plot(fit_gjr, which= 'all')
 
-# forc_roc = sigma(ugarchforecast(fit_roc, n.ahead = n_test, n.roll = 0))
-# write.csv(forc_roc, file = "Forecasts/Open_to_close_RealGARCH_Forecast.csv", row.names = FALSE)
-# forc_oc = sigma(ugarchforecast(fit_oc, n.ahead = n_test, n.roll = 0))
-# write.csv(forc_oc, file = "Forecasts/Open_to_close_GARCH_Forecast.csv", row.names = FALSE)
-# forc_close = sigma(ugarchforecast(fit_close, n.ahead = n_test, n.roll = 0))
-# forc_rclose = sigma(ugarchforecast(fit_rclose, n.ahead = n_test, n.roll = 0))
-
-
 ## Forecasts
 ## Because our goal is to produce models with accurate forecasts, we evaluate
 ## the quality of the models by looking at forecast prediction accuracy instead of
 ## widely used likelihood statistics, such as AIC and BIC.
 # forc_close <- modelroll_close@forecast$density[,"Sigma"]
 # forc_rclose <- modelroll_rclose@forecast$density[,"Sigma"]
+
 ## Rolling window forecast with re-estimation
+#we use 5 years as in sample, 2 years as out of sample
 n_test <- 252*2
 true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
+
+# #Close-to-close forecasts
 # modelroll_close <- ugarchroll (
-#   spec=spec_close, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-#   refit.every = 1, refit.window = c("recursive"),
+#   spec=spec_close, data=ret_oc[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("moving"),
 #   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 # )
 # modelroll_rclose <- ugarchroll (
-#   spec=spec_rclose, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-#   refit.every = 1, refit.window = c("recursive"),
+#   spec=spec_rclose, data=ret_oc[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("moving"),
 #   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
 #   realizedVol = kernel_cov[2:length(kernel_cov)]
 # )
+
+#Open-to-close forecasts
 modelroll_oc <- ugarchroll (
   spec=spec_oc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
   refit.every = 1, refit.window = c("moving"),
@@ -146,29 +144,7 @@ modelroll_gjr <- ugarchroll (
 )
 
 
-# for(suffix in c("roc")) {
-#   spec <- eval(parse(text = paste0("spec_", suffix)))
-#   ret <- ret_oc
-#   ret <- ret[2:length(ret)]
-#   i <- 0
-#   pb <- txtProgressBar(min = 1, max = n_test, style = 3)
-#   forc <- c()
-#   rollapplyr(
-#     data = ret,
-#     width = length(ret) - n_test+1,
-#     
-#     FUN = function(x){
-#       i <<- i+1
-#       fit <- ugarchfit(spec, x, realizedVol = kernel_cov[2:length(kernel_cov)], solver = 'hybrid')
-#       setTxtProgressBar(pb, i)
-#       forc <<- c(forc, sigma(ugarchforecast(fit, n.ahead = 1))[1])
-#       return(NULL)
-#     }
-#   )
-#   assign(paste0("forc_", suffix), forc)
-# } 
-
-#return forecasts
+#Return forecasts
 forcret_roc <- modelroll_roc@forecast$density[,"Mu"]
 write.csv(forcret_roc, file = "Forecasts/OCret_RealGARCH_Forecast.csv", row.names = FALSE)
 forcret_oc <- modelroll_oc@forecast$density[,"Mu"]
@@ -178,7 +154,7 @@ write.csv(forcret_gjr, file = "Forecasts/OCret_GJRGARCH_Forecast.csv", row.names
 forcret_e <- modelroll_e@forecast$density[,"Mu"]
 write.csv(forcret_e, file = "Forecasts/OCret_EGARCH_Forecast.csv", row.names = FALSE)
 
-#volatility forecasts
+#Volatility forecasts
 forc_roc <- modelroll_roc@forecast$density[,"Sigma"]
 write.csv(forc_roc, file = "Forecasts/OCvol_RealGARCH_Forecast.csv", row.names = FALSE)
 forc_oc <- modelroll_oc@forecast$density[,"Sigma"]
