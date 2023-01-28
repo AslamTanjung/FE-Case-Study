@@ -1,21 +1,23 @@
 library(dplyr)
+library(xts)
+library(forecast)
 
 kernel_cov <- read.csv("Returns & RV/RV_kernel.csv", sep = " ")
 kernel_cov$Index <- as.POSIXct(kernel_cov$Index,format="%Y-%m-%d %H:%M:%S")
 kernel_cov <- xts(kernel_cov$V1, kernel_cov$Index)
-kernel_cov <- tail(kernel_cov, 25*2)
+kernel_cov <- tail(kernel_cov, 252*2)
 
 files <- tibble(File = list.files("Forecasts", pattern = "^OCvol|^Open_to_close", full.names = TRUE)) %>%
   mutate(name =  gsub('.*vol_(.*)_Forecast.*','\\1',File))
-par(mfrow = c(3, 3), ma)
+par(mfrow = c(3, 3), mar = numeric(4))
 for(i in 1:nrow(files)){
   name <- files$name[i]
   file <- files$File[i]
   forc <- read.csv(file, sep = " ")$x
   
-  plot(as.numeric(kernel_cov), type = "l", xlab = "", ylab = "Vol", xaxt='n', yaxt = 'n')
-  lines(forc, col = "red")
-  legend(x = 'topleft', legend = name, col = "red", lty = 1)
+  plot(as.numeric(kernel_cov), type = "l", xlab = "", ylab = "Vol", xaxt= 'n', yaxt = 'n')
+  lines(forc_gas, col = "red")
+  legend(x = 'topleft', legend = name, col = "red")
 }
 
 files <- tibble(File = list.files("MAE", pattern = "^OCvol|^Open_to_close", full.names = TRUE)) %>%
@@ -41,3 +43,4 @@ for(i in 1:nrow(files)){
   cat(paste0(name1, " vs ", name2, ": DM statistic = ", stat, ", p-value = ", p, "\n"))
   }
 }
+
