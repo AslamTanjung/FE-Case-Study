@@ -76,7 +76,7 @@ for (name in c(
   forc_gas <- as.numeric(rol_for@Forecast$Moments[, 2])
   write.csv(
     forc_gas,
-    file = paste0("Forecasts/OCvol_GAS_Test", name, "_", scaling, "_Forecast.csv"),
+    file = paste0("Forecasts/OCvol_GAS_", name, "_", scaling, "_Forecast.csv"),
     row.names = FALSE
   )
   MAE_gas <- as.numeric(abs(forc_gas - true_value))

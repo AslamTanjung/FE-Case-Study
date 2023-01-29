@@ -16,7 +16,7 @@ for(i in 1:nrow(files)){
   forc <- read.csv(file, sep = " ")$x
   
   plot(as.numeric(kernel_cov), type = "l", xlab = "", ylab = "Vol", xaxt= 'n', yaxt = 'n')
-  lines(forc_gas, col = "red")
+  lines(forc, col = "red")
   legend(x = 'topleft', legend = name, col = "red")
 }
 
