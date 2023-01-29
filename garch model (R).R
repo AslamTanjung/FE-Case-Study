@@ -176,13 +176,13 @@ MAE <- function(forc, true_value) {
 # MSE <- function(forc, true_value) {
 #   return(as.double((forc-true_value)**2))
 # }
-MAE_roc <- MAE(forc_roc, true_value)
+MAE_roc <- MAE(forc_roc**2, true_value)
 write.csv(MAE_roc, file = "MAE/OCvol_RealGARCH_MAE.csv", row.names = FALSE)
-MAE_oc <- MAE(forc_oc, true_value)
+MAE_oc <- MAE(forc_oc**2, true_value)
 write.csv(MAE_oc, file = "MAE/OCvol_GARCH_MAE.csv", row.names = FALSE)
-MAE_gjr <- MAE(forc_gjr, true_value)
+MAE_gjr <- MAE(forc_gjr**2, true_value)
 write.csv(MAE_gjr, file = "MAE/OCvol_GJRGARCH_MAE.csv", row.names = FALSE)
-MAE_e <- MAE(forc_e, true_value)
+MAE_e <- MAE(forc_e**2, true_value)
 write.csv(MAE_e, file = "MAE/OCvol_EGARCH_MAE.csv", row.names = FALSE)
 
 ################################################################################
@@ -337,3 +337,6 @@ MAE_gjr <- MAE(forc_gjr, true_value)
 write.csv(MAE_gjr, file = "MAE/CCvol_GJRGARCH_MAE.csv", row.names = FALSE)
 MAE_e <- MAE(forc_e, true_value)
 write.csv(MAE_e, file = "MAE/CCvol_EGARCH_MAE.csv", row.names = FALSE)
+
+################################################################################
+################################################################################
