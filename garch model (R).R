@@ -39,9 +39,9 @@ write.zoo(ret_oc, file = "Returns & RV/Open_to_close_log_returns.csv", col.names
 ################################################################################
 ################################################################################
 
-# ret_close <- read.csv("Returns & RV/Close_to_close_log_returns.csv", sep = " ")
-# ret_close$Index <- as.POSIXct(ret_close$Index,format="%Y-%m-%d %H:%M:%S")
-# ret_close <- xts(ret_close$V1, ret_close$Index)
+ret_close <- read.csv("Returns & RV/Close_to_close_log_returns.csv", sep = " ")
+ret_close$Index <- as.POSIXct(ret_close$Index,format="%Y-%m-%d %H:%M:%S")
+ret_close <- xts(ret_close$V1, ret_close$Index)
 
 ret_oc <- read.csv("Returns & RV/Open_to_close_log_returns.csv", sep = " ")
 ret_oc$Index <- as.POSIXct(ret_oc$Index,format="%Y-%m-%d %H:%M:%S")
@@ -72,7 +72,7 @@ plot(index(ret_oc), ret_oc, type = "l", xlab = "Time", ylab = "Open to Close Log
 # fit_close <- ugarchfit(spec_close, ret_close[2:length(ret_close)], solver = 'hybrid')
 
 ## Model specification with Student t distribution (maybe  also with sstd to compare?)
-spec_oc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "std")
+spec_oc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
 spec_roc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'realGARCH', garchOrder = c(1, 1)), distribution.model = "std")
 spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 1)), distribution.model = "std")
 spec_gjr <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'gjrGARCH', garchOrder = c(1, 1)), distribution.model = "std")
@@ -123,23 +123,23 @@ true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
 #Open-to-close forecasts
 modelroll_oc <- ugarchroll (
   spec=spec_oc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 modelroll_roc <- ugarchroll (
   spec=spec_roc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
   realizedVol = kernel_cov[2:length(kernel_cov)]
 )
 modelroll_e <- ugarchroll (
   spec=spec_e, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 modelroll_gjr <- ugarchroll (
   spec=spec_gjr, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 
@@ -176,13 +176,13 @@ MAE <- function(forc, true_value) {
 # MSE <- function(forc, true_value) {
 #   return(as.double((forc-true_value)**2))
 # }
-MAE_roc <- MAE(forc_roc, true_value)
+MAE_roc <- MAE(forc_roc**2, true_value)
 write.csv(MAE_roc, file = "MAE/OCvol_RealGARCH_MAE.csv", row.names = FALSE)
-MAE_oc <- MAE(forc_oc, true_value)
+MAE_oc <- MAE(forc_oc**2, true_value)
 write.csv(MAE_oc, file = "MAE/OCvol_GARCH_MAE.csv", row.names = FALSE)
-MAE_gjr <- MAE(forc_gjr, true_value)
+MAE_gjr <- MAE(forc_gjr**2, true_value)
 write.csv(MAE_gjr, file = "MAE/OCvol_GJRGARCH_MAE.csv", row.names = FALSE)
-MAE_e <- MAE(forc_e, true_value)
+MAE_e <- MAE(forc_e**2, true_value)
 write.csv(MAE_e, file = "MAE/OCvol_EGARCH_MAE.csv", row.names = FALSE)
 
 ################################################################################
@@ -250,3 +250,93 @@ lines(forc_roc, col = 'purple')
 lines(forc_gjr, col = 'black')
 lines(forc_gas, col = 'brown')
 legend("topleft", legend = c("E", "TRUE", "GARCH", 'real', 'GJR', 'GAS'), col = c('red', 'blue', 'green', 'purple', 'black', 'brown'), lty=1)
+
+#we use 5 years as in sample, 2 years as out of sample
+n_test <- 252*2
+true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
+
+# #Close-to-close forecasts
+# modelroll_close <- ugarchroll (
+#   spec=spec_close, data=ret_oc[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("moving"),
+#   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
+# )
+# modelroll_rclose <- ugarchroll (
+#   spec=spec_rclose, data=ret_oc[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+#   refit.every = 1, refit.window = c("moving"),
+#   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
+#   realizedVol = kernel_cov[2:length(kernel_cov)]
+# )
+
+################################################################################
+################################################################################
+########### Close-to-close #################################################
+#Open-to-close forecasts
+
+modelroll_oc <- ugarchroll (
+  spec=spec_oc, data=ret_close[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+  refit.every = 3, refit.window = c("moving"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
+)
+modelroll_roc <- ugarchroll (
+  spec=spec_roc, data=ret_close[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+  refit.every = 3, refit.window = c("moving"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
+  realizedVol = kernel_cov[2:length(kernel_cov)]
+)
+modelroll_e <- ugarchroll (
+  spec=spec_e, data=ret_close[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+  refit.every = 3, refit.window = c("moving"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
+)
+modelroll_gjr <- ugarchroll (
+  spec=spec_gjr, data=ret_close[2:length(ret_close)], n.ahead = 1, forecast.length = n_test,
+  refit.every = 3, refit.window = c("moving"),
+  solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
+)
+
+
+
+#Return forecasts
+forcret_roc <- modelroll_roc@forecast$density[,"Mu"]
+write.csv(forcret_roc, file = "Forecasts/CCret_RealGARCH_Forecast.csv", row.names = FALSE)
+forcret_oc <- modelroll_oc@forecast$density[,"Mu"]
+write.csv(forcret_oc, file = "Forecasts/CCret_GARCH_Forecast.csv", row.names = FALSE)
+forcret_gjr <- modelroll_gjr@forecast$density[,"Mu"]
+write.csv(forcret_gjr, file = "Forecasts/CCret_GJRGARCH_Forecast.csv", row.names = FALSE)
+forcret_e <- modelroll_e@forecast$density[,"Mu"]
+write.csv(forcret_e, file = "Forecasts/CCret_EGARCH_Forecast.csv", row.names = FALSE)
+
+#Volatility forecasts
+forc_roc <- modelroll_roc@forecast$density[,"Sigma"]
+write.csv(forc_roc, file = "Forecasts/CCvol_RealGARCH_Forecast.csv", row.names = FALSE)
+forc_oc <- modelroll_oc@forecast$density[,"Sigma"]
+write.csv(forc_oc, file = "Forecasts/CCvol_GARCH_Forecast.csv", row.names = FALSE)
+forc_gjr <- modelroll_gjr@forecast$density[,"Sigma"]
+write.csv(forc_gjr, file = "Forecasts/CCvol_GJRGARCH_Forecast.csv", row.names = FALSE)
+forc_e <- modelroll_e@forecast$density[,"Sigma"]
+write.csv(forc_e, file = "Forecasts/CCvol_EGARCH_Forecast.csv", row.names = FALSE)
+
+# factor <- var(ret_close[2:(length(ret_close)-n_test)])/mean(kernel_cov[2:(length(kernel_cov)-n_test)])
+## Mean Absolute Value
+# MAE_close <- as.double(abs(forc_close - true_value%*% factor))
+# MAE_rclose <- as.double(abs(forc_rclose - true_value %*% factor))
+
+MAE <- function(forc, true_value) {
+  return(as.double(abs(forc-true_value)))
+}
+
+# MSE <- function(forc, true_value) {
+#   return(as.double((forc-true_value)**2))
+# }
+MAE_roc <- MAE(forc_roc, true_value)
+write.csv(MAE_roc, file = "MAE/CCvol_RealGARCH_MAE.csv", row.names = FALSE)
+MAE_oc <- MAE(forc_oc, true_value)
+write.csv(MAE_oc, file = "MAE/CCvol_GARCH_MAE.csv", row.names = FALSE)
+MAE_gjr <- MAE(forc_gjr, true_value)
+write.csv(MAE_gjr, file = "MAE/CCvol_GJRGARCH_MAE.csv", row.names = FALSE)
+MAE_e <- MAE(forc_e, true_value)
+write.csv(MAE_e, file = "MAE/CCvol_EGARCH_MAE.csv", row.names = FALSE)
+
+################################################################################
+################################################################################
