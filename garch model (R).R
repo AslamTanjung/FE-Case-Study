@@ -72,7 +72,7 @@ plot(index(ret_oc), ret_oc, type = "l", xlab = "Time", ylab = "Open to Close Log
 # fit_close <- ugarchfit(spec_close, ret_close[2:length(ret_close)], solver = 'hybrid')
 
 ## Model specification with Student t distribution (maybe  also with sstd to compare?)
-spec_oc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "std")
+spec_oc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'sGARCH', garchOrder = c(1, 1)), distribution.model = "sstd")
 spec_roc <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'realGARCH', garchOrder = c(1, 1)), distribution.model = "std")
 spec_e <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', garchOrder = c(1, 1)), distribution.model = "std")
 spec_gjr <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'gjrGARCH', garchOrder = c(1, 1)), distribution.model = "std")
@@ -123,23 +123,23 @@ true_value <- kernel_cov[(length(kernel_cov)-n_test+1):length(kernel_cov)]
 #Open-to-close forecasts
 modelroll_oc <- ugarchroll (
   spec=spec_oc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 modelroll_roc <- ugarchroll (
   spec=spec_roc, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05),
   realizedVol = kernel_cov[2:length(kernel_cov)]
 )
 modelroll_e <- ugarchroll (
   spec=spec_e, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 modelroll_gjr <- ugarchroll (
   spec=spec_gjr, data=ret_oc[2:length(ret_oc)], n.ahead = 1, forecast.length = n_test,
-  refit.every = 1, refit.window = c("moving"),
+  refit.every = 3, refit.window = c("moving"),
   solver = "hybrid", calculate.VaR = TRUE, VaR.alpha = c(0.01,0.05)
 )
 
