@@ -188,3 +188,55 @@ for (name in c(
 #   
 # }
 
+for(name in c("std", "sstd", "ald", "ast")) {
+  params <- c()
+  scaling <- "Identity"
+  spec <- UniGASSpec(
+    Dist = name,
+    ScalingType = "Identity",
+    GASPar = list(
+      location = TRUE,
+      scale = TRUE,
+      skewness = TRUE,
+      shape = TRUE,
+      shape2 = TRUE
+    )
+  )
+  
+  fit <-
+    UniGASFit(spec, ret, fn.optimizer = fn.optim, Compute.SE = TRUE)
+  # params <- c()
+  # b <- c(0.5, 0.5, 0.5)
+  # B <- diag(b, 3, 3)
+  # a <- c(0.5, 0.5, 0.5)
+  # A <- diag(a, 3, 3)
+  # ThetaStar <- c(0.1, 1.5, 7.0)
+  # kappa <- (diag(3) - B) %*% UniUnmapParameters(ThetaStar, name)
+  
+  for (i in 1:1000) {
+    sim <- getObs(UniGASSim(fit = fit, T.sim = 100))
+    fit_sim <-
+      UniGASFit(spec, sim, fn.optimizer = fn.optim, Compute.SE = TRUE)
+    params <-
+      rbind(params, c(
+        as.numeric(fit_sim@Estimates$lParList$vKappa),
+        diag(fit_sim@Estimates$lParList$mA),
+        diag(fit_sim@Estimates$lParList$mB)
+      ))
+  }
+  params_fit <-
+    c(
+      as.numeric(fit@Estimates$lParList$vKappa),
+      diag(fit@Estimates$lParList$mA),
+      diag(fit@Estimates$lParList$mB)
+    )
+  
+  means <- c()
+  for (i in 1:ncol(params)) {
+    means <- c(means, mean((params[, i] - params_fit[i]) ** 2))
+  }
+  write.csv(means, file = paste0("MSE/SIM_", name, "_MSE.csv"))
+}
+
+
+
