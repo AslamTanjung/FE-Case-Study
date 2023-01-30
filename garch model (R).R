@@ -340,7 +340,7 @@ write.csv(forc_gjr, file = "Forecasts/CCvol_GJRGARCH_Forecast.csv", row.names = 
 forc_e <- modelroll_e@forecast$density[,"Sigma"]
 write.csv(forc_e, file = "Forecasts/CCvol_EGARCH_Forecast.csv", row.names = FALSE)
 
-# factor <- var(ret_close[2:(length(ret_close)-n_test)])/mean(kernel_cov[2:(length(kernel_cov)-n_test)])
+factor <- var(ret_close[2:(length(ret_close)-n_test)])/mean(kernel_cov[2:(length(kernel_cov)-n_test)])
 ## Mean Absolute Value
 # MAE_close <- as.double(abs(forc_close - true_value%*% factor))
 # MAE_rclose <- as.double(abs(forc_rclose - true_value %*% factor))
@@ -363,3 +363,47 @@ write.csv(MAE_e, file = "MAE/CCvol_EGARCH_MAE.csv", row.names = FALSE)
 
 ################################################################################
 ################################################################################
+
+egarch <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = 'eGARCH', realized.vol = TRUE, garchOrder = c(1, 1)), distribution.model = "std")
+fit_e <- ugarchfit(spec = spec_e, data = ret_oc[2:length(ret_oc)], solver = 'hybrid', realizedVol = kernel_cov[2:length(kernel_cov)])
+
+
+################################################################################
+################################################################################
+## Simulate voor MSE
+for(name in c("sGARCH", "eGARCH", "gjrGARCH", "realGARCH")){
+  params <- c()
+  spec <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = FALSE), variance.model = list(model = name,garchOrder = c(1, 1)), distribution.model = "std")
+  fit <- ugarchfit(spec = spec, data = ret_oc[2:length(ret_oc)], solver = 'hybrid', realizedVol = kernel_cov[2:length(kernel_cov)])
+  
+  for (i in 1:1000) {
+    simul <- ugarchsim(fit = fit, n.sim = 2000, rseed = 0)
+    sim <- xts(as.numeric(fitted(simul)), order.by = as.Date(1:2000))
+    if(name == "realGARCH"){
+      rv = xts(as.numeric(sigma(simul)), order.by = as.Date(1:2000))
+    } else {
+      rv = NULL
+    }
+    fit_sim <- ugarchfit(spec = spec, data = sim, realizedVol = rv)
+    if(name == "realGARCH"){
+      params <- rbind(params, as.numeric(fit_sim@model$pars[c("omega", "alpha1", "beta1", "eta11", "eta21", "delta", "lambda", "shape"),1]))
+    } else{
+    params <-
+      rbind(params, as.numeric(fit_sim@model$pars[c("omega", "alpha1", "beta1", "shape"),1]))
+    }
+  }
+  
+  if(name == "realGARCH"){
+    params_fit <- as.numeric(fit@model$pars[c("omega", "alpha1", "beta1", "eta11", "eta21", "delta", "lambda", "shape"),1])
+  } else {
+  params_fit <-
+    as.numeric(fit@model$pars[c("omega", "alpha1", "beta1", "shape"),1])
+  }
+  
+  means <- c()
+  for (i in 1:ncol(params)) {
+    means <- c(means, mean((params[, i] - params_fit[i]) ** 2))
+  }
+  write.csv(means, file = paste0("MSE/SIM_", name, "_MSE.csv"))
+  
+}
