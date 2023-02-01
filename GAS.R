@@ -13,10 +13,10 @@ nCores <- detectCores() - 1
 cluster <- makeCluster(nCores)
 
 n_test <- 252 * 2
-kernel_cov <- read.csv("Returns & RV/RV_kernel.csv", sep = " ")
-kernel_cov$Index <-
-  as.POSIXct(kernel_cov$Index, format = "%Y-%m-%d %H:%M:%S")
-kernel_cov <- tail(as.numeric(xts(kernel_cov$V1, kernel_cov$Index)), n_test)
+kernel_cov <- read.csv("Returns & RV/RV_kernel2.csv", sep = " ")
+#kernel_cov$Index <-
+  #as.POSIXct(kernel_cov$Index, format = "%Y-%m-%d %H:%M:%S")
+#kernel_cov <- tail(as.numeric(xts(kernel_cov$V1, kernel_cov$Index)), n_test)
 
 #kernel_cov <- as.numeric(xts(kernel_cov$V1, kernel_cov$Index))
 ret <-
@@ -99,12 +99,10 @@ ret_cc$Index <- as.POSIXct(ret_cc$Index, format = "%Y-%m-%d %H:%M:%S")
 ret_cc <- xts(ret_cc$V1, ret_cc$Index)
 ret_cc <- ret_cc[2:length(ret_cc),]
 
+## Rolling window estimation ####
 n_test <- 252 * 2
 for (name in c(
-  "std",
-  "sstd",
-  "ast",
-  "ald"
+  "ast"
 )){
   for(scaling in c("Identity")) {
     print(paste(name, scaling))
@@ -188,9 +186,9 @@ for (name in c(
 #   
 # }
 
+## MSE simulation
 for(name in c("std", "sstd", "ald", "ast")) {
   params <- c()
-  scaling <- "Identity"
   spec <- UniGASSpec(
     Dist = name,
     ScalingType = "Identity",
@@ -239,4 +237,28 @@ for(name in c("std", "sstd", "ald", "ast")) {
 }
 
 
+################################################################################
+################################################################################
+## 01/02/2023 ####
 
+spec <- UniGASSpec(
+  Dist = "ast",
+  ScalingType = "Identity",
+  GASPar = list(
+    location = FALSE,
+    scale = TRUE,
+    skewness = FALSE,
+    shape = FALSE,
+    shape2 = FALSE
+  )
+)
+fit <-
+  UniGASFit(spec, ret_cc, fn.optimizer = fn.optim, Compute.SE = TRUE)
+
+sim <- getObs(UniGASSim(fit = fit, T.sim = 10000))
+
+fit_sim <- UniGASFit(spec, sim, fn.optimizer = fn.optim, Compute.SE = TRUE)
+
+var <- getFilteredParameters(fit)[,"scale"]**2
+plot(kernel_cov$V1, col = 'green', type = "l")
+lines(var, type = "l", col =  'purple')
