@@ -84,11 +84,27 @@ fit_r_oc <- ugarchfit(spec = spec_roc, data = ret_oc[2:length(ret_oc)], solver =
 fit_e_oc <- ugarchfit(spec = spec_e, data = ret_oc[2:length(ret_oc)], solver = 'hybrid')
 fit_gjr_oc <- ugarchfit(spec = spec_gjr, data = ret_oc[2:length(ret_oc)], solver = 'hybrid')
 
+Logl = student_t_log_likelihood(ret_oc[2:length(ret_oc)], uncmean(fit_r_oc), sigma(fit_r_oc), coef(fit_r_oc)[8])
+AIC = 2 * length(coef(fit_r_oc)) - 2 * Logl
+BIC = length(coef(fit_r_oc)) * log(length(ret_oc[2:length(ret_oc)])) - 2 * Logl
+
 #Close to close fit 
 fit_cc <- ugarchfit(spec = spec_oc, data = ret_close[2:length(ret_close)], solver = 'hybrid')
 fit_r_cc <- ugarchfit(spec = spec_roc, data = ret_close[2:length(ret_close)], solver = 'hybrid', realizedVol = kernel_cov[2:length(kernel_cov)])
 fit_e_cc <- ugarchfit(spec = spec_e, data = ret_close[2:length(ret_close)], solver = 'hybrid')
 fit_gjr_cc <- ugarchfit(spec = spec_gjr, data = ret_close[2:length(ret_close)], solver = 'hybrid')
+
+Logl = student_t_log_likelihood(ret_oc[2:length(ret_close)], uncmean(fit_r_cc), sigma(fit_r_cc), coef(fit_r_cc)[8])
+AIC = 2 * length(coef(fit_r_cc)) - 2 * Logl
+BIC = length(coef(fit_r_cc)) * log(length(ret_close[2:length(ret_close)])) - 2 * Logl
+
+student_t_log_likelihood <- function(y, mu, sigma, nu) {
+  d <- ncol(y)
+  t <- (1 + (1/nu)*rowSums((y-mu)^2/sigma^2))^(-(nu+d)/2)
+  log_l <- lgamma((nu+d)/2) - log(sqrt(pi*nu)) - lgamma(nu/2) - log(sigma) - (nu+d)/2 * log(1+(1/nu)*rowSums((y-mu)^2/sigma^2))
+  return(sum(log_l))
+}
+
 
 
 #output of, parameters estimates and other statistics, open to close Garch models
